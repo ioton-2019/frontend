@@ -1,5 +1,6 @@
 import {Component, OnInit} from "@angular/core";
-import {circleMarker, LatLng, MapOptions, tileLayer} from "leaflet";
+import {LatLng, MapOptions, tileLayer} from "leaflet";
+import {Position} from "../../data/postion.marker.data";
 
 @Component({
   selector: 'app-pet-tracking-map',
@@ -15,7 +16,7 @@ export class PetTrackingMapComponent implements OnInit {
     tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors'
     });
-  public currentPos: LatLng;
+  public currentPosition: Position;
 
   constructor() {
   }
@@ -29,10 +30,9 @@ export class PetTrackingMapComponent implements OnInit {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(position => {
         console.log(position);
-        this.currentPos = new LatLng(position.coords.latitude, position.coords.longitude);
-        let currentPosMarker = circleMarker([this.currentPos.lat, this.currentPos.lng], {radius: 15});
-        currentPosMarker.bindTooltip("Here are you.");
-        this.layers.push(currentPosMarker)
+        let currentPos = new LatLng(position.coords.latitude, position.coords.longitude);
+        this.currentPosition = new Position(currentPos);
+        this.drawMarkers();
       });
     }
   }
@@ -44,6 +44,11 @@ export class PetTrackingMapComponent implements OnInit {
     };
 
     this.layers.push(this.tileLayer);
+  }
+
+  private drawMarkers() {
+    this.layers = [];
+    this.layers.push(this.currentPosition.marker)
   }
 
 }
