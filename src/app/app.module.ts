@@ -1,14 +1,28 @@
-import { BrowserModule } from '@angular/platform-browser';
-import { NgModule } from '@angular/core';
+import {BrowserModule} from "@angular/platform-browser";
+import {NgModule} from "@angular/core";
 
-import { AppComponent } from './app.component';
+import {AppComponent} from "./app.component";
+import {DashboardComponent} from "./dashboard/dashboard.component";
+import {MatToolbarModule} from "@angular/material";
+import {PetTrackingMapComponent} from "./pet-tracking-map/pet-tracking-map.component";
+import {HttpClientModule} from "@angular/common/http";
+import {BrowserAnimationsModule} from "@angular/platform-browser/animations";
+import {LeafletModule} from "@asymmetrik/ngx-leaflet";
 
 @NgModule({
   declarations: [
-    AppComponent
+    AppComponent,
+    DashboardComponent,
+    PetTrackingMapComponent
   ],
   imports: [
-    BrowserModule
+    BrowserModule,
+    BrowserAnimationsModule,
+    HttpClientModule,
+
+    LeafletModule.forRoot(),
+
+    MatToolbarModule,
   ],
   providers: [],
   bootstrap: [AppComponent]
