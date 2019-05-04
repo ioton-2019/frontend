@@ -1,5 +1,5 @@
 import {Component, OnInit} from "@angular/core";
-import {LatLng, MapOptions, tileLayer} from "leaflet";
+import {circleMarker, LatLng, MapOptions, tileLayer} from "leaflet";
 
 @Component({
   selector: 'app-pet-tracking-map',
@@ -30,6 +30,9 @@ export class PetTrackingMapComponent implements OnInit {
       navigator.geolocation.getCurrentPosition(position => {
         console.log(position);
         this.currentPos = new LatLng(position.coords.latitude, position.coords.longitude);
+        let currentPosMarker = circleMarker([this.currentPos.lat, this.currentPos.lng], {radius: 15});
+        currentPosMarker.bindTooltip("Here are you.");
+        this.layers.push(currentPosMarker)
       });
     }
   }
