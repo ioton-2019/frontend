@@ -1,5 +1,5 @@
 import {circleMarker, CircleMarker, LatLng} from "leaflet";
-export class Position {
+export class UserPosition {
 
   public marker: CircleMarker;
 

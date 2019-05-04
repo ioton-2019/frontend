@@ -1,7 +1,7 @@
 <div class="map-container" #container>
   <div class="map" leaflet
        [leafletOptions]="mapOptions"
-       [leafletCenter]="currentPosition?.latLng"
+       [leafletCenter]="userPosition?.latLng"
        [leafletLayers]="layers">
   </div>
 </div>
