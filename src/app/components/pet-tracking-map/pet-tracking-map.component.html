@@ -1,14 +1,25 @@
 <mat-toolbar color="primary">
   <span>Fluffy Hounder</span>
-  <button mat-icon-button>
+
+  <button mat-flat-button color="primary"
+          (click)="showPetOverview()">
     <mat-icon>pets</mat-icon>
+    <span>&nbsp;</span>
+    <span *ngIf="pets.length == 0">Register </span>
+    <span>your pets</span>
   </button>
 </mat-toolbar>
 
 <div class="map-container" #container>
   <div class="map" leaflet
        [leafletOptions]="mapOptions"
-       [leafletCenter]="userPosition?.latLng"
+       [leafletCenter]="zoomLatLng"
        [leafletLayers]="layers">
   </div>
+</div>
+
+<div class="loader-container" [ngClass]="{'slideUp': isLoading == false}">
+  <h1 class="mat-h1 mat-headline">Fluffy Hounder</h1>
+  <img [src]="LOGO_URL" border="5"
+       width="168" height="168">
 </div>

@@ -1,14 +1,14 @@
 export interface PetData {
-  id: string;
+  _id: string;
   name: string;
   ownerID: string;
-  route: LocationData[];
-  missing: boolean;
+  lastSeen: LocationData[];
+  isMissing: boolean;
   type: string; //cat | dog für Icon
 }
 
 export interface LocationData {
-  timeStamp: number;
+  timestamp: string;
   lampID: string;
 }
 

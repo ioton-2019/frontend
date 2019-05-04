@@ -1,0 +1,21 @@
+<h1 mat-dialog-title>Register your pet</h1>
+<div mat-dialog-content>
+  <mat-form-field>
+    <input matInput placeholder="How do you call your pet?" [(ngModel)]="name">
+  </mat-form-field>
+  <p></p>
+  <mat-radio-group aria-label="What kind of pet is it?" [(ngModel)]="type">
+    <mat-radio-button value="cat">
+      <img [src]="catIconUrl" height="42" width="42">
+    </mat-radio-button>&nbsp;&nbsp;
+    <mat-radio-button value="dog">
+      <img [src]="dogIconUrl" height="42" width="42">
+    </mat-radio-button>
+  </mat-radio-group>
+
+</div>
+<div mat-dialog-actions>
+  <button mat-button (click)="closeDialog()">Cancel</button>
+  <button mat-button (click)="registerPet()">Register</button>
+</div>
+

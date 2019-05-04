@@ -4,10 +4,12 @@ import {PetData} from "../../data/pet.data";
 import {PetMarker, UserPosition} from "../../data/marker.data";
 import {UserData} from "../../data/user.data";
 import {LampData} from "../../data/lamp.data";
-import {FakeDataService} from "../../services/fake-data.service";
 import {Subscription} from "rxjs/index";
-import {LoginService} from "../../login.service";
-import {MatSnackBar} from "@angular/material";
+import {MatBottomSheet, MatBottomSheetConfig, MatDialog, MatSnackBar, MatSnackBarConfig} from "@angular/material";
+import {PetOverviewComponent} from "../pet-overview/pet-overview.component";
+import {DataService} from "../../services/data.service";
+import {BottomSheetCommunicationService} from "../../services/bottom-sheet-communication.service";
+import {PetRegistrationDialogComponent} from "../pet-registration-dialog/pet-registration-dialog.component";
 
 @Component({
   selector: 'app-pet-tracking-map',
@@ -16,31 +18,54 @@ import {MatSnackBar} from "@angular/material";
 })
 export class PetTrackingMapComponent implements OnInit, OnDestroy {
 
-  public isDataLoading: boolean = true;
-  public userPosition: UserPosition;
+  public LOGO_URL = './../../assets/logo.jpg';
+  public isLoading: boolean = true;
+  public zoomLatLng: LatLng;
   public mapOptions: MapOptions = {};
   public layers = [];
-
   private tileLayer =
     tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors'
     });
+
+
+  private userPosition: UserPosition;
   private pets: PetMarker[] = [];
 
+  private zoomSubscription: Subscription;
+  private petRegistrationSubscription: Subscription;
   private userSubscription: Subscription;
   private petSubscriptionList: Subscription[] = [];
   private lampSubscriptionList: Subscription[] = [];
 
 
-  constructor(private dataService: FakeDataService,
-              private loginService: LoginService,
-              private snackBar: MatSnackBar) {
+  constructor(private dataService: DataService,
+              private snackBar: MatSnackBar,
+              public dialog: MatDialog,
+              private bottomSheet: MatBottomSheet,
+              private bottomSheetCommunicationService: BottomSheetCommunicationService) {
   }
 
   ngOnInit() {
     this.initMapLayer();
     this.requestCurrentPosition();
     this.requestUserAndPetData();
+
+    setTimeout(() => {
+      this.isLoading = false;
+    }, 1500);
+
+    this.zoomSubscription = this.bottomSheetCommunicationService.getZoomToPetObservable().subscribe(
+      (petID) => {
+        let pet = this.pets.find(p => p.id === petID);
+        if (pet !== undefined && pet.marker !== undefined)
+          this.zoomLatLng = pet.marker.getLatLng();
+      }
+    );
+
+    this.petRegistrationSubscription = this.dataService.getPetRegisteredObservable().subscribe(
+      (petData) => this.mapPetData(petData)
+    )
   }
 
   ngOnDestroy() {
@@ -59,6 +84,14 @@ export class PetTrackingMapComponent implements OnInit, OnDestroy {
         lampSubscription.unsubscribe();
       }
     });
+
+    if (this.zoomSubscription) {
+      this.zoomSubscription.unsubscribe();
+    }
+
+    if (this.petRegistrationSubscription) {
+      this.petRegistrationSubscription.unsubscribe();
+    }
   }
 
   private initMapLayer() {
@@ -74,46 +107,45 @@ export class PetTrackingMapComponent implements OnInit, OnDestroy {
       navigator.geolocation.getCurrentPosition(position => {
         let currentPos = new LatLng(position.coords.latitude, position.coords.longitude);
         this.userPosition = new UserPosition(currentPos);
+        this.zoomLatLng = currentPos;
         this.drawMarkers();
       });
     }
   }
 
   private requestUserAndPetData() {
-    let id = "U1";//this.loginService.getLoggedInUserID();
+    let id = this.dataService.getUserID();
     this.userSubscription = this.dataService.requestUserData(id).subscribe(
       (userData: UserData) => {
-        userData.petIDs.forEach(id => this.requestPetData(id));
+        userData.pets.forEach(id => this.requestPetData(id));
       }
     );
-    this.dataService.pushUserData();
   }
 
   private requestPetData(petID: string) {
     let petSubscription = this.dataService.requestPetData(petID).subscribe(
       (petData: PetData) => this.mapPetData(petData));
     this.petSubscriptionList.push(petSubscription);
-    this.dataService.pushPetData();
   }
 
   private mapPetData(petData: PetData) {
     let petMarker = new PetMarker();
+    petMarker.id = petData._id;
     petMarker.name = petData.name;
-    petMarker.route = petData.route;
-    petMarker.missing = petData.missing;
+    petMarker.route = petData.lastSeen;
+    petMarker.isMissing = petData.isMissing;
+    petMarker.setIcon(petData.type);
     this.pets.push(petMarker);
 
-    if (petData.route.length > 0) {
-      let lampSubscription = this.dataService.requestLampData(petData.route[0].lampID).subscribe(
+    if (petData.lastSeen.length > 0) {
+      let lampSubscription = this.dataService.requestLampData(petData.lastSeen[0].lampID).subscribe(
         (lampData: LampData) => {
-          petMarker.createMarker(lampData.lat, lampData.lng, petData.type);
+          petMarker.createMarker(lampData.coordinates.lat, lampData.coordinates.lng);
           this.drawMarkers();
         }
       );
       this.lampSubscriptionList.push(lampSubscription);
     }
-
-    this.dataService.pushLampData();
   }
 
   private drawMarkers() {
@@ -131,14 +163,18 @@ export class PetTrackingMapComponent implements OnInit, OnDestroy {
         this.layers.push(pet.marker);
       });
 
-      if (this.pets.length > trackedPets.length) {
-        this.handleUntrackedPets();
+      if (!this.isLoading) {
+        if (this.pets.length > trackedPets.length) {
+          this.handleUntrackedPets();
+        }
+
+        this.handleMissingPets();
       }
     }
   }
 
 
-  public handleUntrackedPets(): string[] {
+  public handleUntrackedPets() {
     let untrackedPets = this.pets.filter(p => p.route.length === 0);
     if (untrackedPets.length === 0) {
       return;
@@ -151,7 +187,45 @@ export class PetTrackingMapComponent implements OnInit, OnDestroy {
       message = "Some of your pets are not tracked recently.";
 
     }
-    this.snackBar.open(message, "X");
+    let config: MatSnackBarConfig = new MatSnackBarConfig();
+    config.panelClass = 'snackbar';
+    this.snackBar.open(message, "X", config);
+  }
+
+
+  public handleMissingPets() {
+    let missingPets = this.pets.filter(p => p.isMissing);
+    if (missingPets.length === 0) {
+      return;
+    }
+
+    let message = "";
+    if (missingPets.length === 1) {
+      message = message.concat("Is ", missingPets[0].name, " still missing?")
+    } else {
+      message = "Are your pets still missing?";
+    }
+
+    let config: MatSnackBarConfig = new MatSnackBarConfig();
+    config.panelClass = 'snackbar';
+    let missingPetSnackbar = this.snackBar.open(message, "No", config);
+    missingPetSnackbar.onAction().subscribe(() => {
+      missingPets[0].isMissing = false;
+      this.dataService.changeMissingStatusOfPet(missingPets[0].id, false);
+    });
+  }
+
+
+  public showPetOverview() {
+    if (this.pets.length === 0) {
+      this.dialog.open(PetRegistrationDialogComponent);
+    } else {
+
+      let config: MatBottomSheetConfig = new MatBottomSheetConfig();
+      config.data = {pets: this.pets};
+      this.bottomSheet.open(PetOverviewComponent, config);
+    }
   }
 
 }
+

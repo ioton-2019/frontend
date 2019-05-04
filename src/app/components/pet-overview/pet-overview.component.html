@@ -1,0 +1,29 @@
+<mat-nav-list #list>
+
+  <a *ngFor="let pet of pets" mat-list-item id="link" (click)="zoomToPet($event, pet)">
+    <img [src]="pet.iconUrl" height="42" width="42">
+    <mat-icon *ngIf="!pet.isMissing" id="on" (click)="switchMissingStatusOfPet(pet)">notifications_active</mat-icon>
+    <mat-icon *ngIf="pet.isMissing" id="off" (click)="switchMissingStatusOfPet(pet)">notifications_off</mat-icon>
+    <span mat-line>
+      {{pet.name}}
+      <small *ngIf="pet.isMissing" style="color:red">&nbsp;&nbsp;MISSING</small>
+    </span>
+    <span mat-line *ngIf="pet.route.length > 0; else notTracked">
+      last seen at <br/>
+      <small>{{pet.route[0].timestamp | date:'medium' }}</small>
+    </span>
+    <ng-template #notTracked>
+      <span mat-line>
+        <small> has not been tracked recently.</small>
+      </span>
+    </ng-template>
+  </a>
+
+  <a mat-list-item (click)="registerPet($event)">
+    <mat-icon>add_circle_outline</mat-icon>
+    <span mat-line>
+      Register your pet
+    </span>
+  </a>
+
+</mat-nav-list>
